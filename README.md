@@ -9,7 +9,8 @@ Repo: `mandaloixtlahuacan-dot/flujo-propio-ventas`
 | Pieza | Rol |
 |-------|-----|
 | `app/api/webhook/route.ts` | Secret, Mexico JID, fromMe, dedupe, leads, LLM, reply, notify admin |
-| `config/system-prompt.ts` | `SALES_SYSTEM_PROMPT` (vendedor Flujo Propio) |
+| `config/system-prompt.ts` | `SALES_SYSTEM_PROMPT` (carga `BOT_VENTAS_SYSTEM_PROMPT.md`) |
+| `config/BOT_VENTAS_SYSTEM_PROMPT.md` | Texto completo del prompt de ventas |
 | `lib/supabase.ts` | Cliente service-role (server only) |
 | `lib/leads.ts` | Upsert lead, history metadata, hot keywords, events |
 | `lib/whapi.ts` | `sendText` |
@@ -59,3 +60,5 @@ npm install
 npm run build
 npm run dev
 ```
+
+`npm install` genera `package-lock.json` si no está en el repo.
