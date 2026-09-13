@@ -1,20 +1,16 @@
 /**
  * Flujo Propio — sales WhatsApp bot system prompt.
- * Source: BOT_VENTAS_SYSTEM_PROMPT.md (embedded verbatim at build/runtime via this module).
- * The full prompt text is also kept as config/BOT_VENTAS_SYSTEM_PROMPT.md.
+ * Full sales prompt text lives in config/BOT_VENTAS_SYSTEM_PROMPT.md
+ * and is exported here as SALES_SYSTEM_PROMPT.
  */
 import { readFileSync } from "fs";
 import { join } from "path";
 
 function loadPrompt(): string {
-  try {
-    return readFileSync(
-      join(process.cwd(), "config", "BOT_VENTAS_SYSTEM_PROMPT.md"),
-      "utf8",
-    );
-  } catch {
-    return "Eres el asistente comercial de Flujo Propio (México). Habla por WhatsApp en español mexicano, corto y firme.";
-  }
+  return readFileSync(
+    join(process.cwd(), "config", "BOT_VENTAS_SYSTEM_PROMPT.md"),
+    "utf8",
+  );
 }
 
 export const SALES_SYSTEM_PROMPT = loadPrompt();
