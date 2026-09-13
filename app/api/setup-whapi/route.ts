@@ -50,6 +50,8 @@ export async function POST(req: NextRequest) {
         events: [
           { type: "messages", method: "post" },
           { type: "messages", method: "put" },
+          { type: "messages", method: "patch" },
+          { type: "statuses", method: "post" },
         ],
       },
     ],
