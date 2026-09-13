@@ -41,10 +41,13 @@ function verifySecret(req: NextRequest): boolean {
   return header === expected || query === expected;
 }
 
-function extractText(msg: WhapiMessage): string | null {
-  if (msg.type === "location" || msg.location) {
-    const loc = msg.location;
-    if (!loc?.latitude || loc.longitude === undefined) return null;
+function extractText(msg: WhapiMessage & Record<string, unknown>): string | null {
+  // location / live_location
+  const loc = (msg.location || msg.live_location) as
+    | { latitude?: number; longitude?: number; caption?: string }
+    | undefined;
+  if (msg.type === "location" || msg.type === "live_location" || loc) {
+    if (loc?.latitude == null || loc.longitude == undefined) return null;
     const caption = (loc.caption || "").trim();
     const parts = [
       "[El cliente compartió ubicación GPS]",
@@ -60,6 +63,35 @@ function extractText(msg: WhapiMessage): string | null {
     return msg.text.body.trim();
   }
   if (typeof msg.body === "string" && msg.body.trim()) return msg.body.trim();
+
+  // Whapi variants
+  const content = msg.content;
+  if (typeof content === "string" && content.trim()) return content.trim();
+  if (content && typeof content === "object") {
+    const c = content as Record<string, unknown>;
+    if (typeof c.body === "string" && c.body.trim()) return c.body.trim();
+    if (typeof c.text === "string" && c.text.trim()) return c.text.trim();
+    if (c.text && typeof c.text === "object") {
+      const t = c.text as { body?: string };
+      if (t.body?.trim()) return t.body.trim();
+    }
+  }
+
+  const caption = msg.caption;
+  if (typeof caption === "string" && caption.trim()) {
+    return `[Adjunto ${msg.type || "media"}] ${caption.trim()}`;
+  }
+
+  // button / list reply
+  const btn = msg.button_reply || msg.list_reply || msg.interactive;
+  if (btn && typeof btn === "object") {
+    const b = btn as Record<string, unknown>;
+    const title = [b.title, b.description, b.id]
+      .filter((x) => typeof x === "string" && (x as string).trim())
+      .join(" — ");
+    if (title) return title;
+  }
+
   return null;
 }
 
@@ -199,9 +231,15 @@ async function processMessage(msg: WhapiMessage): Promise<void> {
     return;
   }
 
-  const text = extractText(msg);
+  const text = extractText(msg as WhapiMessage & Record<string, unknown>);
   if (!text) {
-    console.info("[bot] ignore non-text type=%s id=%s", msg.type, msgId);
+    const keys = Object.keys(msg as object).slice(0, 20).join(",");
+    console.info(
+      "[bot] ignore non-text type=%s id=%s keys=%s",
+      msg.type || "unknown",
+      msgId,
+      keys,
+    );
     return;
   }
 
@@ -310,6 +348,12 @@ export async function POST(req: NextRequest) {
 
   const messages = collectMessages(payload);
   if (messages.length === 0) {
+    const p = payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
+    console.info(
+      "[bot] no messages in payload keys=%s event=%s",
+      Object.keys(p).slice(0, 15).join(","),
+      String(p.event_type || p.event || p.type || ""),
+    );
     return NextResponse.json({ ok: true, ignored: true });
   }
 
