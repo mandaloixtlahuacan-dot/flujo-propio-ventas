@@ -167,15 +167,12 @@ async function maybeNotifyAdmin(params: {
   interestPackage?: string;
   leadId: string | null;
 }): Promise<void> {
-  const combined = `${params.userText}\n${params.reply}`;
-  const signals = detectHotSignals(combined);
+  const signals = detectHotSignals(params.userText);
   if (!signals.hot && !params.stage) return;
 
   const stage =
     params.stage ||
     signals.stage ||
-    detectHotSignals(params.userText).stage ||
-    detectHotSignals(params.reply).stage ||
     "waiting_transfer";
 
   const interest =
@@ -316,15 +313,21 @@ async function processMessage(msg: WhapiMessage): Promise<void> {
     });
   }
 
-  if (outboundSignals.hot || inboundSignals.hot) {
+  // Notify only on clear customer intent — never because the bot said "videollamada".
+  // Skip when the chatter IS the admin (self-test from Víctor's phone).
+  const admin = adminJid();
+  const isSelfTest = Boolean(admin && toJid === admin);
+  if (inboundSignals.hot && !isSelfTest) {
     await maybeNotifyAdmin({
       toJid,
       userText: text,
       reply,
-      stage,
+      stage: inboundSignals.stage || stage,
       interestPackage,
       leadId,
     });
+  } else if (isSelfTest) {
+    console.info("[bot] skip admin notify — self-test from admin JID");
   }
 }
 
